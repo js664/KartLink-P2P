@@ -42,3 +42,8 @@ body,.shell { background:#191a1c; color:#efefed; }
 @keyframes surface-enter { from { opacity:0; transform:translateY(9px); } to { opacity:1; transform:translateY(0); } }
 @keyframes detail-enter { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; } }
+
+.app-header .brand { padding:0; height:auto; border-radius:4px; background:transparent; gap:4px; }
+.app-header .brand:hover { background:transparent; color:#c9dff5; }
+
+.host-note { flex-wrap:wrap; gap:10px; }.host-value { display:inline-flex; align-items:center; gap:3px; padding-left:10px; border:1px solid #34363a; border-radius:8px; background:#202225; }.host-value .copy-icon { width:34px!important; height:34px!important; }

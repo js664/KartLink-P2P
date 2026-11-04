@@ -13,13 +13,20 @@ test('room controls, invite and guide work in the actual Electron renderer', { t
     await page.getByRole('button', { name: 'Create room' }).click();
     await page.getByText('example.test').waitFor();
     assert.equal(await page.getByText('32100').count(), 1);
+    await page.getByRole('button', { name: 'Copy host address' }).click();
+    assert.equal(await page.evaluate(() => window.kartlinkTest.lastCopied()), '127.0.0.1');
+    await page.getByRole('button', { name: 'Copy host port' }).click();
+    assert.equal(await page.evaluate(() => window.kartlinkTest.lastCopied()), '6009');
+    await page.getByRole('button', { name: 'How to play' }).click();
+    await page.getByRole('button', { name: 'KartLink home' }).click();
+    assert.equal(await page.getByText('example.test').count(), 1);
     await page.getByRole('button', { name: 'Copy invite', exact: true }).click();
     assert.equal(await page.getByRole('button', { name: 'Copied', exact: true }).count(), 1);
     await page.getByRole('button', { name: 'Stop room' }).click();
     assert.equal(await page.getByText('example.test').count(), 0);
     await page.getByRole('button', { name: 'How to play' }).click();
     assert.equal(await page.getByText('Enable Airplane Mode', { exact: true }).count(), 1);
-    await page.getByRole('button', { name: 'Back to room' }).click();
+    await page.getByRole('button', { name: 'KartLink home' }).click();
     assert.equal(await page.getByRole('button', { name: 'Create room' }).count(), 1);
   } finally { await app.close(); }
 });

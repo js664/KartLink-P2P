@@ -11,13 +11,15 @@ let state = process.env.KARTLINK_UI_SCENARIO === 'progress'
   ? { connected: false, needsReset: true, phase: 'idle', address: null, error: 'KartLink cannot read its saved Playit connection. Clear the saved connection below, then connect Playit again.' }
   : { connected: true, phase: 'idle', address: null, error: null };
 let notify = () => {};
+let lastCopied = null;
+contextBridge.exposeInMainWorld('kartlinkTest', { lastCopied: () => lastCopied });
 contextBridge.exposeInMainWorld('kartlink', {
   state: async () => state,
   onState: fn => { notify = fn; return () => {}; },
   connect: async () => state,
   disconnect: async () => (state = { connected: false, needsReset: false, phase: 'idle', address: null, error: null }),
   managePlayit: async () => {},
-  copy: async () => {},
+  copy: async value => { lastCopied = value; },
   start: async () => {
     if (process.env.KARTLINK_UI_SCENARIO === 'agent-limit') {
       state = { ...state, error: 'Your Playit account has too many agents. Open Manage Playit agents and remove unused agents, then try again.' };
