@@ -1,8 +1,21 @@
-const { app, BrowserWindow, ipcMain, clipboard, safeStorage, session } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, safeStorage, Menu } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { request, claimCode, ensureTunnel, prepareRoom } = require('./playit.cjs');
+const { createDiagnostics } = require('./diagnostics.cjs');
+const { shell } = require('electron');
+const { configurePortable } = require('./portable.cjs');
+configurePortable(app);
+app.on('browser-window-created', (_event, window) => {
+  const contents = window.webContents;
+  const reset = () => { if (!contents.isDestroyed()) contents.setZoomFactor(1); };
+  contents.on('did-finish-load', reset);
+  contents.on('zoom-changed', reset);
+  contents.on('before-input-event', (event, input) => {
+    if ((input.control || input.meta) && ['+', '=', '-', '_', '0', 'Add', 'Subtract', 'NumpadAdd', 'NumpadSubtract', 'Numpad0'].includes(input.key)) event.preventDefault();
+  });
+});
 
 app.setName('KartLink P2P');
 const hasInstanceLock = app.requestSingleInstanceLock();
@@ -16,11 +29,13 @@ let main, authWindow, room, agent, operation = false, cancelClaim = false, shutt
 app.on('second-instance', () => {
   if (main && !main.isDestroyed()) { if (main.isMinimized()) main.restore(); main.focus(); }
 });
-let view = { connected: false, needsReset: false, phase: 'idle', progress: null, address: null, error: null };
-const update = change => { view = { ...view, ...change }; if (main && !main.isDestroyed()) main.webContents.send('state', view); };
+let view = { connected: false, needsReset: false, phase: 'idle', progress: null, address: null, error: null, diagnostics: { logs: [], players: [], playerListReliable: false } };
+const health = () => ({ roomRunning: !!room && room.exitCode === null && !room.killed, agentRunning: !!agent && agent.exitCode === null && !agent.killed });
+const update = change => { view = { ...view, ...change, health: health() }; if (main && !main.isDestroyed()) main.webContents.send('state', view); };
+const diagnostics = createDiagnostics(value => update({ diagnostics: value }));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 function openPlayitWindow(url, title) {
-  const window = new BrowserWindow({ parent: main, width: 920, height: 740, title, webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, partition: 'persist:kartlink-playit-auth' } });
+  const window = new BrowserWindow({ parent: main, width: 920, height: 740, title, webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, preload: path.join(__dirname, 'zoom-preload.cjs'), partition: 'persist:kartlink-playit-auth' } });
   window.webContents.setWindowOpenHandler(({ url: target }) => { if (target.startsWith('https://') && !window.isDestroyed()) void window.loadURL(target); return { action: 'deny' }; });
   window.webContents.on('will-navigate', (event, target) => { if (!target.startsWith('https://')) event.preventDefault(); });
   void window.loadURL(url).catch(() => { if (!window.isDestroyed()) update({ error: 'Could not open Playit. Check your internet connection and try again.' }); });
@@ -34,26 +49,36 @@ async function savedConnection() {
   try { await readSecret(); return 'ready'; } catch { return 'unreadable'; }
 }
 async function stopChildren() {
-  for (const child of [room, agent]) {
-    if (child && child.exitCode === null && !child.killed) { child.stdin?.write('q\n'); child.kill(); }
-  }
+  const oldRoom = room, oldAgent = agent;
   room = null; agent = null;
+  if (oldAgent && oldAgent.exitCode === null && !oldAgent.killed) oldAgent.kill();
+  if (oldRoom && oldRoom.exitCode === null && !oldRoom.killed) {
+    await new Promise(resolve => {
+      let finished = false;
+      const done = () => { if (!finished) { finished = true; clearTimeout(timer); resolve(); } };
+      const timer = setTimeout(() => { if (oldRoom.exitCode === null && !oldRoom.killed) oldRoom.kill(); done(); }, 1500);
+      oldRoom.once('close', done);
+      oldRoom.stdin?.on('error', () => {});
+      try { oldRoom.stdin?.write('q\n'); } catch { oldRoom.kill(); done(); }
+    });
+  }
   await fs.rm(runtimeSecret(), { force: true }).catch(() => {});
   update({ phase: 'idle', progress: null, address: null });
 }
 function supervise(child, name) {
   child.once('error', error => { if (!shuttingDown) { void stopChildren(); update({ error: `${name}: ${error.message}` }); } });
-  child.once('exit', (code) => { if (!shuttingDown && (child === room || child === agent)) { void stopChildren(); update({ error: `${name} stopped unexpectedly (code ${code ?? 'unknown'}).` }); } });
+  child.once('exit', (code) => { if (!shuttingDown && (child === room || child === agent)) { void stopChildren(); update({ error: `${name} stopped unexpectedly (code ${code ?? 'unknown'}). Check your connection, then create the room again.` }); } });
 }
 function startRoom(password) {
   return new Promise((resolve, reject) => {
+    diagnostics.reset();
     const args = ['-n', 'KartLink P2P', '-g', 'Mario Kart World', '-s', '127.0.0.1', '-p', '6009', '-m', '16'];
     if (password) args.push('-w', password);
     const child = spawn(path.join(resources, 'eden-room.exe'), args, { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     room = child; supervise(child, 'Room server');
     let output = '', finished = false;
     const finish = error => { if (finished) return; finished = true; clearTimeout(timer); error ? reject(error) : resolve(); };
-    const read = chunk => { output += chunk.toString(); if (output.includes('Room is open')) finish(); if (output.includes('Failed to create room')) finish(new Error('Could not open local UDP port 6009. Close another room using that port and try again.')); };
+    const read = chunk => { diagnostics.push(chunk.toString()); output = (output + chunk.toString()).slice(-8192); if (output.includes('Room is open')) finish(); if (output.includes('Failed to create room')) finish(new Error('Could not open local UDP port 6009. Close another room using that port and try again.')); };
     child.stdout.on('data', read); child.stderr.on('data', read);
     child.once('error', error => finish(error)); child.once('exit', () => finish(new Error('The room server exited before it was ready.')));
     const timer = setTimeout(() => finish(new Error('The room server did not become ready.')), 12000);
@@ -123,22 +148,35 @@ async function start(password) {
 
 app.whenReady().then(async () => {
   if (!hasInstanceLock) return;
+  Menu.setApplicationMenu(null);
   await fs.rm(runtimeSecret(), { force: true }).catch(() => {});
   const saved = await savedConnection();
   view.connected = saved === 'ready';
   view.needsReset = saved === 'unreadable';
   if (view.needsReset) view.error = 'KartLink cannot read its saved Playit connection. Clear the saved connection below, then connect Playit again. You may need to remove the old agent in Manage Playit agents.';
-  main = new BrowserWindow({ width: 860, height: 620, minWidth: 640, minHeight: 520, backgroundColor: '#171717', title: 'KartLink P2P', autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  main = new BrowserWindow({ width: 860, height: 620, minWidth: 640, minHeight: 520, backgroundColor: '#171717', title: 'KartLink P2P', icon: app.isPackaged ? path.join(resources, 'kartlink.ico') : path.join(__dirname, '..', 'assets', 'kartlink.ico'), autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   main.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   main.webContents.on('will-navigate', event => event.preventDefault());
   await main.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
-ipcMain.handle('state', () => view);
+ipcMain.handle('state', () => ({ ...view, health: health() }));
 ipcMain.handle('connect', connect);
 ipcMain.handle('manage-playit', () => { openPlayitWindow('https://playit.gg/account/agents', 'Manage Playit'); });
 ipcMain.handle('start', (_event, password) => start(password));
 ipcMain.handle('stop', async () => { if (operation) throw new Error('Please wait for the current action to finish.'); await stopChildren(); update({ error: null }); return view; });
 ipcMain.handle('disconnect', async () => { if (operation) throw new Error('Please wait for the current action to finish.'); await stopChildren(); await fs.rm(encryptedPath(), { force: true }); await saveConfig({}); update({ connected: false, needsReset: false, error: null }); return view; });
+ipcMain.handle('check-update', async () => {
+  const response = await fetch('https://api.github.com/repos/js664/KartLink-P2P/releases?per_page=20', { headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'KartLink-P2P' }, signal: AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error('Could not check GitHub for updates. Try again later.');
+  const releases = await response.json();
+  const parts = v => /^v?(\d+)\.(\d+)\.(\d+)$/.exec(v)?.slice(1).map(Number);
+  const current = parts(app.getVersion());
+  const latest = releases.filter(r => !r.draft && parts(r.tag_name)).sort((a,b) => { const x=parts(a.tag_name), y=parts(b.tag_name); return y[0]-x[0] || y[1]-x[1] || y[2]-x[2]; })[0];
+  if (!latest || !current) return { current: app.getVersion(), latest: null, available: false };
+  const v = parts(latest.tag_name);
+  return { current: app.getVersion(), latest: latest.tag_name, available: v[0]>current[0] || (v[0]===current[0] && (v[1]>current[1] || (v[1]===current[1] && v[2]>current[2]))) };
+});
+ipcMain.handle('open-releases', () => shell.openExternal('https://github.com/js664/KartLink-P2P/releases'));
 ipcMain.handle('copy', (_event, text) => { if (typeof text !== 'string' || text.length > 1000) throw new Error('Invalid text.'); clipboard.writeText(text); });
 app.on('before-quit', () => { shuttingDown = true; cancelClaim = true; void stopChildren(); });
 app.on('window-all-closed', () => app.quit());

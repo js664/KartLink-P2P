@@ -54,3 +54,35 @@ body,.shell { background:#191a1c; color:#efefed; }
 .play-instructions { display:grid; gap:14px; color:#c5cad0; font-size:14px; line-height:1.5; }.play-instructions p { margin:0; }.play-instructions b { color:#efefed; }.hide-instructions { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:13px; }
 @media(max-width:720px) { .room-layout { grid-template-columns:1fr; } }
 :root { color-scheme:dark; }
+.header-actions { display:flex; align-items:center; gap:12px; }
+.tool-frame [data-slot="frame-row"] { gap:12px; }
+.tool-stack { display:flex; flex-direction:column; gap:16px; }
+.tool-stack p { margin:0; line-height:1.5; }
+.tool-note { color:#adb3bb; font-size:13px; }
+.troubleshooting p { color:#c5cad0; font-size:14px; }
+.troubleshooting b { color:#efefed; }
+.server-logs { margin:0; padding:12px; max-height:260px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; border:1px solid #34363a; border-radius:8px; background:#161719; color:#c5cad0; font:12px/1.5 Consolas,monospace; user-select:text; }
+.tool-actions { display:flex; gap:8px; flex-wrap:wrap; }
+@media (min-width:600px) { .room-layout { grid-template-columns:1.25fr 1fr; } }
+@media (max-height:600px) { .main { padding-top:18px; padding-bottom:16px; }.page-top { margin-bottom:14px; }.room-card [data-slot="card-header"] { padding-top:14px; padding-bottom:8px; }.room-card [data-slot="card-content"] { padding-top:8px; padding-bottom:12px; }.room-field+.room-field { margin-top:8px; }.room-copy { margin-top:12px; }.room-card [data-slot="card-footer"] { padding-top:8px; padding-bottom:8px; } }
+.tools-menu [data-slot="frame-panel"] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.tools-menu [data-slot="frame-row"] { min-width:0; align-items:flex-start; }
+.tools-menu [data-slot="frame-row"]:nth-child(odd) { border-right:1px solid #34363a; }
+@media(max-width:540px) { .tools-menu [data-slot="frame-panel"] { grid-template-columns:1fr; }.tools-menu [data-slot="frame-row"]:nth-child(odd) { border-right:0; } }
+@media (max-height:600px) { .app-header { height:52px; }.room-card [data-slot="card-header"] { padding:10px 16px 6px; }.room-card [data-slot="card-content"] { padding:6px 16px 10px; }.room-card [data-slot="card-footer"] { padding:6px 16px; }.room-field { gap:4px; }.room-copy { margin-top:8px; }.room-field+.room-field { margin-top:4px; } }
+.nav-chips.pchips { width:auto; flex:0 1 auto; --pchips-face-top:#292b2e; --pchips-face-bottom:#25272a; --pchips-ink:#c4c8cc; --pchips-lip:#17191b; --pchips-on-top:#386ca9; --pchips-on-bottom:#32649d; --pchips-on-ink:#fff; --pchips-on-lip:#1f4775; --pchips-focus:#9bc5ed; }
+.nav-chips .pchips__list { --pchips-edge:3px; margin:0; gap:0; }.nav-chips .pchips__row { gap:6px; flex-wrap:nowrap; }.nav-chips .pchips__chip { font-family:'Segoe UI',sans-serif; font-size:12px; font-weight:600; padding:10px 12px; letter-spacing:0; cursor:pointer; }.nav-chips .pchips__icon,.nav-chips .pchips__ground { display:none; }.nav-chips .pchips__chip:focus-visible { outline-width:2px; outline-offset:3px; }.section-frame { max-width:100%; }.section-frame [data-slot="frame-row"] { border-color:#34363a; }
+@media(max-width:700px) { .app-header { padding:0 16px; gap:12px; }.nav-chips .pchips__chip { padding:9px 8px; font-size:11px; }.header-actions .help-link { font-size:12px!important; } }
+.activity-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:stretch; }
+.activity-log { grid-column:1 / -1; min-width:0; }
+.activity-card [data-slot="card-header"] { padding:12px 16px 6px; }
+.activity-card [data-slot="card-content"] { padding:4px 16px 12px; }
+.activity-card [data-slot="card-title"] { font-size:14px; }
+.activity-card [data-slot="card-action"] { top:8px; right:10px; }
+.activity-status-list { display:grid; gap:6px; font-size:13px; color:#c5cad0; }
+.activity-status-list > div { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.activity-note { margin:8px 0 0; color:#aab0b7; font-size:11px; line-height:1.35; }
+.activity-player-list { display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px; min-height:44px; max-height:60px; overflow:auto; color:#c5cad0; font-size:13px; }
+.activity-log-lines { margin:0; min-height:64px; max-height:92px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; color:#c5cad0; font:11px/1.4 Consolas,monospace; user-select:text; }
+@media(max-height:600px) { .activity-card [data-slot="card-header"] { padding:8px 12px 4px; }.activity-card [data-slot="card-content"] { padding:2px 12px 8px; }.activity-status-list { gap:4px; }.activity-log-lines { min-height:54px; max-height:70px; }.activity-note { margin-top:5px; } }
+@media(max-width:540px) { .activity-grid { grid-template-columns:1fr; }.activity-log { grid-column:auto; } }

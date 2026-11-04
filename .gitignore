@@ -4,3 +4,6 @@ release/
 *.log
 previews/before.png
 assets/kartlink-logo.png
+
+release-next/
+release-build/

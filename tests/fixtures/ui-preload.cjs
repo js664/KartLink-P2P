@@ -14,11 +14,13 @@ let notify = () => {};
 let lastCopied = null;
 contextBridge.exposeInMainWorld('kartlinkTest', { lastCopied: () => lastCopied });
 contextBridge.exposeInMainWorld('kartlink', {
-  state: async () => state,
+  state: async () => ({...state, health: {roomRunning: state.phase === 'ready', agentRunning: state.phase === 'ready'}, diagnostics: {logs:['Room is open'], players:['KartA'], playerListReliable:false}}),
   onState: fn => { notify = fn; return () => {}; },
   connect: async () => state,
   disconnect: async () => (state = { connected: false, needsReset: false, phase: 'idle', address: null, error: null }),
   managePlayit: async () => {},
+  checkUpdate: async () => ({current:'1.0.1', latest:'v1.0.2', available:true}),
+  openReleases: async () => {},
   copy: async value => { lastCopied = value; },
   start: async () => {
     if (process.env.KARTLINK_UI_SCENARIO === 'agent-limit') {
@@ -26,7 +28,7 @@ contextBridge.exposeInMainWorld('kartlink', {
       notify(state);
       throw new Error(state.error);
     }
-    return (state = { ...state, phase: 'ready', address: { host: 'example.test', port: 32100 }, error: null });
+    return (state = { ...state, phase: 'ready', address: { host: 'example.test', port: 32100 }, error: null, health: {roomRunning:true, agentRunning:true}, diagnostics: {logs:['Room is open'], players:['KartA'], playerListReliable:false} });
   },
   stop: async () => (state = { ...state, phase: 'idle', address: null, error: null }),
 });
