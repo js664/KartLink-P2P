@@ -21,7 +21,7 @@ You need a [playit.gg](https://playit.gg/) account. Any Eglantine fork should wo
 
 Install Node.js, then run `npm ci`, `npm test`, `npm run build`, and `npm start`. Run `npm run package` to build a portable Windows executable. The [release](https://github.com/js664/KartLink-P2P/releases/tag/v1.0.2) also contains the matching room-server source snapshot.
 
-See [TESTING.md](TESTING.md) for test results and outstanding work, and [PRIVACY.md](PRIVACY.md) for how credentials and room access are handled. The app is GPL-3.0-or-later; the bundled Playit agent has its own [license](resources/LICENSE-Playit.txt).
+See [PRIVACY.md](PRIVACY.md) for how credentials and room access are handled. The app is GPL-3.0-or-later; the bundled Playit agent has its own [license](resources/LICENSE-Playit.txt).
 
 The navigation uses a locally adapted copy of the [PinUI Chips component](https://www.pinui.xyz/r/chips.json); the remaining interface uses PanelUI.
 
