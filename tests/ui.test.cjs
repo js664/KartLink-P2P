@@ -6,24 +6,36 @@ const { _electron } = require('playwright-core');
 async function launch(scenario) {
   return _electron.launch({ args: [path.join(__dirname, 'fixtures', 'ui-main.cjs')], env: { ...process.env, KARTLINK_UI_SCENARIO: scenario }, timeout: 30000 });
 }
-test('room controls, invite and guide work in the actual Electron renderer', { timeout: 45000 }, async () => {
+test('room controls, invite and guide work in the actual Electron renderer', { timeout: 90000 }, async () => {
   const app = await launch('room');
   try {
     const page = await app.firstWindow();
     await page.getByRole('button', { name: 'Create room' }).click();
-    await page.getByText('example.test').waitFor();
-    assert.equal(await page.getByText('32100').count(), 1);
+    await page.getByRole('dialog', { name: 'Before you play' }).waitFor();
+    await page.getByRole('button', { name: 'Got it' }).click();
+    await page.locator('input[value="example.test"]').waitFor();
+    assert.equal(await page.locator('input[value="32100"]').count(), 1);
     await page.getByRole('button', { name: 'Copy host address' }).click();
     assert.equal(await page.evaluate(() => window.kartlinkTest.lastCopied()), '127.0.0.1');
     await page.getByRole('button', { name: 'Copy host port' }).click();
     assert.equal(await page.evaluate(() => window.kartlinkTest.lastCopied()), '6009');
     await page.getByRole('button', { name: 'How to play' }).click();
     await page.getByRole('button', { name: 'KartLink home' }).click();
-    assert.equal(await page.getByText('example.test').count(), 1);
+    assert.equal(await page.locator('input[value="example.test"]').count(), 1);
     await page.getByRole('button', { name: 'Copy invite', exact: true }).click();
     assert.equal(await page.getByRole('button', { name: 'Copied', exact: true }).count(), 1);
     await page.getByRole('button', { name: 'Stop room' }).click();
-    assert.equal(await page.getByText('example.test').count(), 0);
+    assert.equal(await page.locator('input[value="example.test"]').count(), 0);
+    await page.getByRole('button', { name: 'Create room' }).click();
+    await page.getByRole('dialog', { name: 'Before you play' }).waitFor();
+    await page.getByRole('checkbox', { name: /Don't show this again/ }).check();
+    await page.getByRole('button', { name: 'Got it' }).click();
+    await page.getByRole('button', { name: 'Stop room' }).click();
+    await page.getByRole('button', { name: 'Create room' }).click();
+    await page.getByRole('button', { name: 'Stop room' }).waitFor();
+    assert.equal(await page.getByRole('dialog', { name: 'Before you play' }).count(), 0);
+    await page.reload();
+    assert.equal(await page.evaluate(() => localStorage.getItem('hide-room-instructions')), 'true');
     await page.getByRole('button', { name: 'How to play' }).click();
     assert.equal(await page.getByText('Enable Airplane Mode', { exact: true }).count(), 1);
     await page.getByRole('button', { name: 'KartLink home' }).click();

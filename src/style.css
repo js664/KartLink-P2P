@@ -33,7 +33,7 @@ body,.shell { background:#191a1c; color:#efefed; }
  .screen .panel,.screen .room-settings { animation:surface-enter 440ms cubic-bezier(.2,.7,.2,1) 40ms both; }
  .screen .room-settings { animation-delay:100ms; }
  button { transition:background-color 180ms ease,color 180ms ease,transform 180ms ease,box-shadow 180ms ease!important; }
- button:hover:not(:disabled) { transform:translateY(-1px); } button:active:not(:disabled) { transform:translateY(1px) scale(.99); }
+ button:active:not(:disabled) { transform:translateY(1px) scale(.99); }
  .primary-action:hover:not(:disabled) { box-shadow:0 5px 16px #24558738; }
  input { transition:border-color 180ms ease,box-shadow 180ms ease; }
  input:focus { border-color:#6392c4; box-shadow:0 0 0 3px #6392c424; }
@@ -47,3 +47,10 @@ body,.shell { background:#191a1c; color:#efefed; }
 .app-header .brand:hover { background:transparent; color:#c9dff5; }
 
 .host-note { flex-wrap:wrap; gap:10px; }.host-value { display:inline-flex; align-items:center; gap:3px; padding-left:10px; border:1px solid #34363a; border-radius:8px; background:#202225; }.host-value .copy-icon { width:34px!important; height:34px!important; }
+.app-header { justify-content:space-between; }.page-top { align-items:flex-start; }.page-top h1 { margin-bottom:0; }.quiet { font-size:12px; color:#aab0b7; }
+.settings-card [data-slot="card-footer"],.connect-card [data-slot="card-footer"] { display:flex; justify-content:space-between; align-items:center; background:#242628; border-color:#34363a; }
+.room-copy { width:100%; margin-top:20px; justify-content:center; }.password-root [data-slot="field-description"] { color:#aab0b7; font-size:12px; }
+.room-layout { display:grid; grid-template-columns:1.25fr 1fr; gap:16px; align-items:start; }.room-card [data-slot="card-footer"] { background:#242628; border-color:#34363a; }.room-field+.room-field { margin-top:16px; }.room-field input { font-variant-numeric:tabular-nums; }.room-connection [data-slot="frame-row"],.room-connection [data-slot="frame-panel"] { border-color:#34363a; }.stop-room { width:100%; }.room-card .host-note { margin:0; font-size:12px; }.host-value .copy-icon { width:30px!important; height:30px!important; }.host-value svg { width:15px; height:15px; }
+.play-instructions { display:grid; gap:14px; color:#c5cad0; font-size:14px; line-height:1.5; }.play-instructions p { margin:0; }.play-instructions b { color:#efefed; }.hide-instructions { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:13px; }
+@media(max-width:720px) { .room-layout { grid-template-columns:1fr; } }
+:root { color-scheme:dark; }
