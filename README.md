@@ -15,7 +15,7 @@ Download the installer or portable ZIP from the [experimental Windows release](h
 3. **Everyone:** Select **Multiplayer → Direct Connect to Room** in Eglantine. The host uses `127.0.0.1` and port `6009`; friends use the address and port shown in KartLink.
 4. **Everyone:** In Mario Kart World’s mode menu, hold **L + R** and click the **left stick** to switch Wireless Play to LAN Play. One player creates the game lobby; the others join it.
 
-The app includes these instructions under **How to play**. Playit may require an account and impose tunnel limits or fees. Compatible game and emulator versions are required.
+You need a [playit.gg](https://playit.gg/) account. Any Eglantine fork should work; please report emulator issues on [GitHub Issues](https://github.com/js664/KartLink-P2P/issues).
 
 ## Build
 
