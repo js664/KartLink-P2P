@@ -6,7 +6,7 @@
 
 ## Download
 
-Download **KartLink-P2P-1.0.0.exe** from the [experimental Windows release](https://github.com/js664/KartLink-P2P/releases/tag/v1.0.0) and open it on Windows x64. No installer or Eglantine patch is required. The build is unsigned; Windows may show a warning.
+Download **KartLink-P2P-1.0.1.exe** from the [experimental Windows release](https://github.com/js664/KartLink-P2P/releases/tag/v1.0.1) and open it on Windows x64. No installer or Eglantine patch is required. The build is unsigned; Windows may show a warning.
 
 ## Play
 
@@ -19,6 +19,6 @@ The app includes these instructions under **How to play**. Playit may require an
 
 ## Build
 
-Install Node.js, then run `npm ci`, `npm test`, `npm run build`, and `npm start`. Run `npm run package` to build a portable Windows executable. The [release](https://github.com/js664/KartLink-P2P/releases/tag/v1.0.0) also contains the matching room-server source snapshot.
+Install Node.js, then run `npm ci`, `npm test`, `npm run build`, and `npm start`. Run `npm run package` to build a portable Windows executable. The [release](https://github.com/js664/KartLink-P2P/releases/tag/v1.0.1) also contains the matching room-server source snapshot.
 
 See [TESTING.md](TESTING.md) for test results and outstanding work, and [PRIVACY.md](PRIVACY.md) for how credentials and room access are handled. The app is GPL-3.0-or-later; the bundled Playit agent has its own [license](resources/LICENSE-Playit.txt).

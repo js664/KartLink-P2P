@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Check, CircleHelp, Copy, ExternalLink, Info, Link2, LoaderCircle, LockKeyhole, Radio, RotateCw, Server, Share2, Square } from 'lucide-react'
-import { Button } from '@/components/motion/button/base'
-import { Input } from '@/components/motion/input'
-import { Card, CardContent } from '@/components/motion/card'
+import { Button } from 'panelui-web/button'
+import { Input } from 'panelui-web/input'
+import { Field } from 'panelui-web/field'
+import { Card } from 'panelui-web/card'
+const CardContent = Card.Content
 import './style.css'
 
 type State = { connected: boolean; needsReset?: boolean; phase: 'idle'|'authorizing'|'starting'|'ready'; progress?: 'room'|'agent'|'address'|null; address: { host: string; port: number } | null; error: string | null }
@@ -26,9 +28,9 @@ function App() {
   const retry = () => run(() => state.needsReset ? window.kartlink.disconnect() : state.connected ? window.kartlink.start(password) : window.kartlink.connect())
   const steps = [{ key: 'room', title: 'Room server', icon: Server }, { key: 'agent', title: 'Playit agent', icon: Radio }, { key: 'address', title: 'Assigning address', icon: Link2 }] as const
   const currentStep = Math.max(0, steps.findIndex(step => step.key === state.progress))
-  return <div className="shell"><main className={state.phase === 'starting' && !guide ? 'main progress-main' : 'main'}>
-    <div className="page-top"><h1>{guide ? 'How to play' : state.phase === 'starting' ? 'Creating room' : active ? 'Room ready' : 'Host a room'}</h1><Button size="sm" variant="ghost" className="help-link" onClick={() => setGuide(!guide)}>{guide ? 'Back to room' : <><CircleHelp size={19}/> How to play</>}</Button></div>
-    {guide ? <Card className="panel guide-panel"><CardContent className="guide">
+  return <div className="shell"><header className="app-header"><div className="brand">KartLink <span>P2P</span></div></header><main className={state.phase === 'starting' && !guide ? 'main progress-main' : 'main'}>
+    <div className="page-top" key={`${guide}-${state.phase}-${state.connected}`}><h1>{guide ? 'How to play' : state.phase === 'starting' ? 'Creating room' : active ? 'Room ready' : 'Host a room'}</h1><Button size="sm" variant="ghost" className="help-link" onClick={() => setGuide(!guide)}>{guide ? 'Back to room' : <><CircleHelp size={19}/> How to play</>}</Button></div>
+    <div className="screen" key={`${guide}-${state.phase}-${state.connected}-${limit}`} >{guide ? <Card className="panel guide-panel"><CardContent className="guide">
       <section><h2>1. Check airplane mode · both players</h2><p>In Eglantine, open <b>Emulation → Configure → Network</b> and uncheck <b>Enable Airplane Mode</b>. Apply the setting. If LAN Play sends either player back to the menu, check this on that player’s PC too.</p></section>
       <section><h2>2. Create the KartLink room · host</h2><p>Connect Playit in this app, choose a room password if you want one, then press <b>Create room</b>. Share the address, port, and password with your friends. Keep KartLink open while playing.</p></section>
       <section><h2>3. Join the emulator room · everyone</h2><p>In Eglantine choose <b>Multiplayer → Direct Connect to Room</b>. The host enters <b>127.0.0.1</b> and port <b>6009</b>. Friends enter the address and port shown in KartLink. Everyone enters the room password if one was set, then connects.</p></section>
@@ -51,9 +53,9 @@ function App() {
       <Card className={'panel '+(state.connected ? 'connected-card' : 'connect-card')}><CardContent className="connection-content"><div className="connection-heading"><div className="connection-icon"><Link2 size={24}/></div><div className="connection-details"><h2>Playit</h2><div className={'connection-status '+(state.connected ? 'is-connected' : '')}><span className={'status-dot '+(state.connected ? 'active-dot' : '')}/>{state.connected ? 'Connected' : 'Not connected'}</div></div>{state.connected && <Button variant="ghost" size="sm" className="disconnect" onClick={() => run(() => window.kartlink.disconnect())}>Disconnect</Button>}</div>
         {!state.connected && <><p className="connection-caption">{state.needsReset ? 'Clear the saved connection to reconnect' : 'Connect Playit to create a room'}</p><div className="actions"><Button className="primary-action" disabled={busy} onClick={retry}><Link2 size={18}/>{state.needsReset ? 'Clear saved connection' : state.phase === 'authorizing' ? 'Waiting for Playit…' : 'Connect Playit'}</Button><Button variant="ghost" className="text-action" disabled={busy} onClick={manage}>Manage agents</Button></div></>}
       </CardContent></Card>
-      {state.connected && <div className="room-settings"><Input label="Room password" value={password} onChange={setPassword} placeholder="Optional" maxLength={64} disabled={busy} leftIcon={<LockKeyhole size={18}/>} classNames={{ root: 'password-root', label: 'password-label', field: 'password-field', input: 'password-input', leftIcon: 'password-icon' }}/><div className="actions settings-actions"><Button className="primary-action create-button" disabled={busy} onClick={retry}>Create room</Button><Button variant="ghost" className="text-action" disabled={busy} onClick={manage}><ExternalLink size={17}/>Manage agents</Button></div></div>}
+      {state.connected && <div className="room-settings"><Field name="password" className="password-root"><Field.Label optional>Room password</Field.Label><Input type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Optional" maxLength={64} disabled={busy} /><Field.Description>Share the password with your friends</Field.Description></Field><div className="actions settings-actions"><Button className="primary-action create-button" disabled={busy} onClick={retry}>Create room</Button><Button variant="ghost" className="text-action" disabled={busy} onClick={manage}><ExternalLink size={17}/>Manage agents</Button></div></div>}
       {state.error && <div className="error-banner" role="alert"><span className="status-dot error-dot"/><div><h2>Something went wrong</h2><p>{state.error}</p></div></div>}
-    </>}
+    </>}</div>
   </main></div>
 }
 createRoot(document.getElementById('root')!).render(<App />)
