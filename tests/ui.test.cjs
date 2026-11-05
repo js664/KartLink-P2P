@@ -23,6 +23,7 @@ test('room controls, invite and guide work in the actual Electron renderer', { t
     await page.getByRole('button', { name: 'How to play' }).click();
     const helpDialog = page.getByRole('dialog', { name: 'How to play' });
     await helpDialog.waitFor();
+    assert.equal(await page.getByRole('dialog', { name: 'Before you play' }).count(), 0);
     assert.equal(await helpDialog.locator('.play-instructions').innerText(), reminderText);
     assert.equal(await helpDialog.getByRole('checkbox').count(), 0);
     await helpDialog.getByRole('button', { name: 'Got it' }).click();
@@ -57,7 +58,7 @@ test('agent limit is visible with an action the user can find', { timeout: 45000
     await page.getByRole('button', { name: 'Create room' }).click();
     await page.getByRole('alert').waitFor();
     assert.match(await page.getByRole('alert').innerText(), /too many agents.*Manage Playit agents/s);
-    assert.equal(await page.getByRole('button', { name: 'Manage agents' }).count(), 1);
+    assert.equal(await page.getByRole('button', { name: 'Manage Playit' }).count(), 1);
   } finally { await app.close(); }
 });
 test('an unreadable saved connection offers an explicit reset', { timeout: 45000 }, async () => {
@@ -74,7 +75,7 @@ test('disconnected screen offers Playit setup and agent management', { timeout: 
   try {
     const page = await app.firstWindow();
     await page.getByRole('button', { name: 'Connect Playit' }).waitFor();
-    assert.equal(await page.getByRole('button', { name: 'Manage agents' }).count(), 1);
+    assert.equal(await page.getByRole('button', { name: 'Manage Playit' }).count(), 1);
     assert.equal(await page.getByRole('button', { name: 'Create room' }).count(), 0);
   } finally { await app.close(); }
 });
@@ -112,12 +113,16 @@ test('navigation opens activity and help details without leaving the room', { ti
     const activity = page.locator('.activity-grid');
     await activity.waitFor();
     assert.match(await activity.innerText(), /Room server[\s\S]*Running/);
+    assert.match(await activity.innerText(), /External connection[\s\S]*Not tested/);
     assert.match(await activity.innerText(), /KartA/);
-    assert.match(await activity.innerText(), /may be delayed or incomplete/);
+    assert.match(await activity.innerText(), /may be incomplete/);
     assert.match(await activity.getByLabel('Recent server log').innerText(), /Room is open/);
+    await page.evaluate(() => window.kartlinkTest.emitDiagnostics({logs:['KartB joined the room'], players:['KartB'], playerListReliable:false}));
+    await activity.getByText('KartB', {exact:true}).waitFor();
+    assert.match(await activity.getByLabel('Recent server log').innerText(), /KartB joined the room/);
     await page.getByRole('button', {name:'View all'}).click();
     let dialog = page.getByRole('dialog', {name:'Server log'});
-    assert.match(await dialog.innerText(), /Room is open/);
+    assert.match(await dialog.innerText(), /KartB joined the room/);
     await dialog.getByRole('button', {name:'Close', exact:true}).last().click();
     await page.getByRole('tab', {name:'Help & settings'}).click();
     await page.getByRole('button', {name:'Settings', exact:true}).click();
@@ -136,4 +141,60 @@ test('navigation opens activity and help details without leaving the room', { ti
     assert.equal(await page.getByRole('button', {name:'Stop room'}).count(), 1);
     assert.equal(await page.getByRole('tab', {name:'Room'}).getAttribute('aria-selected'), 'true');
   } finally { await app.close(); }
+});
+
+test('a delayed initial state cannot overwrite a newer startup update',{timeout:30000},async()=>{
+ const app=await launch('race');try{const p=await app.firstWindow();await p.getByRole('button',{name:'Create room'}).waitFor();await p.waitForTimeout(400);assert.equal(await p.getByRole('button',{name:'Create room'}).count(),1);assert.equal(await p.getByRole('button',{name:'Connect Playit'}).count(),0)}finally{await app.close()}
+});
+
+test('tunnel management requires confirmation and updates the list', {timeout:45000}, async () => {
+  const app = await launch('room');
+  try {
+    const page = await app.firstWindow();
+    await page.getByRole('button', {name:'Manage Playit'}).click();
+    const dialog = page.locator('main');
+    await dialog.getByRole('button', {name:'Tunnels', exact:true}).click();
+    await dialog.getByText('Test tunnel', {exact:true}).waitFor();
+    await dialog.getByRole('button', {name:'Delete Test tunnel'}).click();
+    assert.match(await dialog.innerText(), /public address and allocated ports will be released/);
+    await dialog.getByRole('button', {name:'Cancel',exact:true}).click();
+    assert.equal(await dialog.getByText('Test tunnel', {exact:true}).count(), 1);
+    await dialog.getByRole('button', {name:'Delete Test tunnel'}).click();
+    await dialog.getByRole('button', {name:'Delete tunnel',exact:true}).click();
+    await dialog.getByText('No tunnels found for this account.').waitFor();
+  } finally { await app.close(); }
+});
+
+test('agent management lists agents and confirms their tunnel treatment', {timeout:45000}, async () => {
+  const app = await launch('room');
+  try {
+    const page = await app.firstWindow();
+    await page.getByRole('button', {name:'Manage Playit'}).click();
+    const dialog = page.locator('main');
+    await dialog.getByText('Test agent', {exact:true}).waitFor();
+    assert.match(await dialog.innerText(), /offline.*1 tunnel/s);
+    await dialog.getByRole('button', {name:'Delete agent Test agent'}).click();
+    assert.match(await dialog.innerText(), /cannot be undone/);
+    await dialog.getByRole('button', {name:'Cancel',exact:true}).click();
+    assert.equal(await dialog.getByText('Test agent', {exact:true}).count(), 1);
+    await dialog.getByRole('button', {name:'Delete agent Test agent'}).click();
+    await dialog.getByRole('button', {name:'Delete tunnels too'}).click();
+    await dialog.getByRole('button', {name:'Confirm delete agent'}).click();
+    await dialog.getByText('No agents found.').waitFor();
+  } finally { await app.close(); }
+});
+
+test('agent management explains how it reuses the room creator website session', {timeout:45000}, async () => {
+  const app = await launch('auth-expired');
+  try {
+    const page = await app.firstWindow();
+    await page.getByRole('button', {name:'Manage Playit'}).click();
+    const dialog = page.locator('main');
+    await dialog.getByRole('alert').getByText(/Connect Playit from the Room tab/).waitFor();
+    assert.equal(await dialog.getByRole('button', {name:'Sign in to Playit'}).count(),0);
+  } finally { await app.close(); }
+});
+
+test('only current agent and tunnel are labelled and protected', {timeout:45000}, async () => {
+ const app=await launch('active-resources'); try {const p=await app.firstWindow();await p.getByRole('tab',{name:'Manage Playit'}).click();await p.getByText('Current agent',{exact:true}).waitFor();assert.equal(await p.getByRole('button',{name:'Delete agent Current agent'}).isDisabled(),true);assert.equal(await p.getByRole('button',{name:'Delete agent Old agent'}).isEnabled(),true);assert.match(await p.locator('main').innerText(),/Currently used by KartLink/);await p.getByRole('button',{name:'Tunnels',exact:true}).click();await p.getByText('Current tunnel',{exact:true}).waitFor();assert.equal(await p.getByRole('button',{name:'Delete Current tunnel'}).isDisabled(),true);assert.equal(await p.getByRole('button',{name:'Delete Old tunnel'}).isEnabled(),true)}finally{await app.close()}
 });

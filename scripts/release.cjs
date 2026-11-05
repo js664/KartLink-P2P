@@ -2,7 +2,7 @@ const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'release-build');
+const output = process.env.KARTLINK_RELEASE_OUTPUT ? path.resolve(process.env.KARTLINK_RELEASE_OUTPUT) : path.join(root, 'release-build');
 const unpacked = path.join(output, 'win-unpacked');
 const version = require('../package.json').version;
 const mode = process.argv[2] || 'all';
@@ -14,7 +14,7 @@ function run(command, args, cwd = root) {
 }
 run(process.execPath, [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build']);
 const builder = require.resolve('electron-builder/cli.js');
-run(process.execPath, [builder, '--win', ...(mode === 'portable' ? ['--dir'] : ['nsis']), '--x64']);
+run(process.execPath, [builder, '--win', ...(mode === 'portable' ? ['--dir'] : ['nsis']), '--x64', `--config.directories.output=${output}`]);
 if (mode !== 'installer') {
   const flag = path.join(unpacked, 'kartlink-portable.flag');
   const instructions = path.join(unpacked, 'PORTABLE-README.txt');

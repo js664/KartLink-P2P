@@ -1,6 +1,6 @@
 {
   "name": "kartlink-p2p",
-  "version": "1.0.2",
+  "version": "1.0.6",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
@@ -8,10 +8,11 @@
     "build": "vite build",
     "start": "electron .",
     "package": "node scripts/release.cjs",
-    "test": "node --test tests/playit.test.cjs tests/diagnostics.test.cjs tests/portable.test.cjs",
+    "test": "node --test tests/playit.test.cjs tests/playit-account.test.cjs tests/active-resources.test.cjs tests/diagnostics.test.cjs tests/portable.test.cjs tests/process-control.test.cjs tests/auth-url.test.cjs tests/room-process.test.cjs tests/process-control-integration.test.cjs",
     "test:ui": "npm run build && node --test tests/ui.test.cjs",
     "package:installer": "node scripts/release.cjs installer",
-    "package:portable": "node scripts/release.cjs portable"
+    "package:portable": "node scripts/release.cjs portable",
+    "test:integration": "npm run build && node --test tests/auth-lock.test.cjs tests/startup.test.cjs tests/live-room-events.test.cjs tests/agent-ipc.test.cjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.4",

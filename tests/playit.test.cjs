@@ -1,6 +1,20 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { claimCode, parseAddress, request, ensureTunnel, prepareRoom, PlayitError } = require('../electron/playit.cjs');
+const { claimCode, parseAddress, request, ensureTunnel, prepareRoom, listTunnels, deleteTunnel, PlayitError } = require('../electron/playit.cjs');
+
+test('tunnel management lists safe fields and deletes only a listed inactive tunnel', async () => {
+  const id = '11111111-1111-4111-8111-111111111111'; const calls = [];
+  const api = async (path, body) => { calls.push({path, body}); return path === '/tunnels/list' ? {tunnels:[{id,name:'Room',port_type:'udp',port_count:1,origin:{data:{agent_name:'Agent',local_port:6009}},alloc:{status:'allocated',data:{static_ip4:'192.0.2.1',port_start:1234}}, secret:'must-not-escape'}]} : {}; };
+  const list = await listTunnels('key', api);
+  assert.deepEqual(list[0].address, {host:'192.0.2.1',port:1234});
+  assert.equal('secret' in list[0], false);
+  await assert.rejects(deleteTunnel('key', id, id, api), /Stop your room/);
+  await assert.rejects(deleteTunnel('key', 'invalid', null, api), /Invalid tunnel ID/);
+  await assert.rejects(deleteTunnel('key', '22222222-2222-4222-8222-222222222222', null, api), /no longer in the list/);
+  await deleteTunnel('key', id, null, api);
+  assert.deepEqual(calls.at(-1), {path:'/tunnels/delete',body:{tunnel_id:id}});
+  await assert.rejects(listTunnels('key', async () => ({})), /invalid tunnel list/);
+});
 
 test('claim codes and addresses are validated', () => {
   assert.match(claimCode(), /^[0-9a-f]{10}$/);
@@ -85,4 +99,34 @@ test('reports a persistent pending allocation after a bounded wait', async () =>
   let calls = 0;
   await assert.rejects(prepareRoom({ startRoom: async () => {}, startAgent: async () => {}, getTunnel: async () => { calls++; throw new PlayitError('still pending', 'AllocationPending'); }, wait: async () => {} }), /still pending/);
   assert.equal(calls, 11);
+});
+
+test('a failed ID save is recovered using the pre-saved unique tunnel claim', async () => {
+  let disk = {}, remote = [], creates = 0, failIdSave = true;
+  const save = async value => { if (value.tunnelId && failIdSave) { failIdSave = false; throw new Error('disk failure'); } disk = structuredClone(value); };
+  const api = async (route, body) => {
+    if (route === '/agents/rundata') return { agent_id: 'agent' };
+    if (route === '/tunnels/create') { creates++; remote.push({ id: 'owned', name: body.name, origin:body.origin, port_type:body.port_type, port_count:body.port_count, alloc: {status:'allocated',data:{static_ip4:'203.0.113.1',port_start:1234}} }); return {id:'owned'}; }
+    if (route === '/tunnels/list') return {tunnels:remote}; throw new Error('unexpected route');
+  };
+  await assert.rejects(ensureTunnel('key', {}, save, api), /disk failure/);
+  assert.equal(disk.tunnelCreatePending, true); assert.ok(disk.tunnelClaim); assert.equal(creates, 1);
+  const restored = structuredClone(disk); assert.equal((await ensureTunnel('key', restored, save, api)).port,1234);
+  assert.equal(creates,1); assert.equal(disk.tunnelId,'owned'); assert.equal(disk.tunnelCreatePending,undefined);
+});
+test('uncertain creation does not create a duplicate or adopt another tunnel', async () => {
+  const state = {tunnelClaim:'abc123',tunnelCreatePending:true}; let creates=0;
+  const api=async route=>route==='/agents/rundata'?{agent_id:'agent'}:route==='/tunnels/list'?{tunnels:[{id:'other',name:'KartLink P2P'}]}:(creates++,{});
+  await assert.rejects(ensureTunnel('key',state,async()=>{},api),/previous tunnel request/); assert.equal(creates,0);
+});
+test('a failed intent save never creates a tunnel',async()=>{
+ let calls=[];const state={};const api=async route=>{calls.push(route);return {agent_id:'agent'}};
+ await assert.rejects(ensureTunnel('key',state,async()=>{throw Error('disk full')},api),/disk full/);
+ assert.deepEqual(calls,['/agents/rundata']);assert.deepEqual(state,{});
+});
+
+test('reconciliation never adopts a matching name from a different agent', async () => {
+ const state={tunnelClaim:'same',tunnelCreatePending:true};let creates=0;
+ const api=async route=>route==='/agents/rundata'?{agent_id:'ours'}:route==='/tunnels/list'?{tunnels:[{id:'other',name:'KartLink P2P-same',origin:{type:'agent',data:{agent_id:'different',local_ip:'127.0.0.1',local_port:6009}},port_type:'udp',port_count:1}]}:(creates++,{});
+ await assert.rejects(ensureTunnel('key',state,async()=>{},api),/previous tunnel request/);assert.equal(creates,0);
 });

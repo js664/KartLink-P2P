@@ -63,6 +63,8 @@ body,.shell { background:#191a1c; color:#efefed; }
 .troubleshooting b { color:#efefed; }
 .server-logs { margin:0; padding:12px; max-height:260px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; border:1px solid #34363a; border-radius:8px; background:#161719; color:#c5cad0; font:12px/1.5 Consolas,monospace; user-select:text; }
 .tool-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.tunnel-list { max-height:220px; overflow:auto; }
+.tunnel-list [data-slot="frame-content"] { min-width:0; overflow-wrap:anywhere; }
 @media (min-width:600px) { .room-layout { grid-template-columns:1.25fr 1fr; } }
 @media (max-height:600px) { .main { padding-top:18px; padding-bottom:16px; }.page-top { margin-bottom:14px; }.room-card [data-slot="card-header"] { padding-top:14px; padding-bottom:8px; }.room-card [data-slot="card-content"] { padding-top:8px; padding-bottom:12px; }.room-field+.room-field { margin-top:8px; }.room-copy { margin-top:12px; }.room-card [data-slot="card-footer"] { padding-top:8px; padding-bottom:8px; } }
 .tools-menu [data-slot="frame-panel"] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }

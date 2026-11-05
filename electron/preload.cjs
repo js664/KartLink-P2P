@@ -2,7 +2,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('kartlink', {
   state: () => ipcRenderer.invoke('state'),
   connect: () => ipcRenderer.invoke('connect'),
-  managePlayit: () => ipcRenderer.invoke('manage-playit'),
+  onPlayitSessionChanged: callback => { const fn = () => callback(); ipcRenderer.on('playit-session-changed', fn); return () => ipcRenderer.removeListener('playit-session-changed', fn); },
+  listTunnels: () => ipcRenderer.invoke('list-tunnels'),
+  listAgents: () => ipcRenderer.invoke('list-agents'),
+  deleteAgent: (id, strategy) => ipcRenderer.invoke('delete-agent', id, strategy),
+  deleteTunnel: id => ipcRenderer.invoke('delete-tunnel', id),
   disconnect: () => ipcRenderer.invoke('disconnect'),
   start: password => ipcRenderer.invoke('start', password),
   stop: () => ipcRenderer.invoke('stop'),
